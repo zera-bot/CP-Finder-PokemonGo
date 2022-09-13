@@ -414,36 +414,54 @@ cp_multipliers = [
     }]
 
 api = 'https://pogoapi.net/api/v1/'
-target = int(input("CP: "))
-outputFile = input("Output Type: ") #json or csv or all
+target = int(input("CP: ")) #target cp
+outputFile = input("Output Type: ") #output type, json or csv or all
+mode = input("Mode: ") #sorting mode, f(ull) or o(ptimized)
 
 def createDictionary():
     res = json.loads(getdata(api+"pokemon_stats.json"))
     dict = {}
 
     for stats_ in res:
-        if(stats_["form"] == "Normal"):
+        if mode == "o" or mode == "optimized" or mode == "":
+            if stats_["form"] != "Normal":
+                continue
+
+        if mode == "o" or mode == "optimized" or mode == "":
             pkName = stats_["pokemon_name"]
-            dict[pkName] = {}
-            for i in cp_multipliers:
-                atk = stats_['base_attack']
-                def_ = stats_['base_defense']
-                sta = stats_['base_stamina']
+        elif mode == "f" or mode == "full":
+            pkName = stats_["pokemon_name"]+"`"+stats_["form"]
 
-                minCp = math.floor((atk*(def_**0.5)*(sta**0.5)*((i['multiplier'])**2))/10)
-                maxCp = math.floor(((atk+15)*((def_+15)**0.5)*((sta+15)**0.5)*((i['multiplier'])**2))/10)
-                if minCp < 10: minCp = 10
-                if maxCp < 10: maxCp = 10
+        dict[pkName] = {}
+        for i in cp_multipliers:
+            atk = stats_['base_attack']
+            def_ = stats_['base_defense']
+            sta = stats_['base_stamina']
 
-                dict[pkName][i['level']] = [minCp,maxCp,i['multiplier'],i['level'],stats_['pokemon_name']]
+            minCp = math.floor((atk*(def_**0.5)*(sta**0.5)*((i['multiplier'])**2))/10)
+            maxCp = math.floor(((atk+15)*((def_+15)**0.5)*((sta+15)**0.5)*((i['multiplier'])**2))/10)
+            if minCp < 10: minCp = 10
+            if maxCp < 10: maxCp = 10
 
-    with open('dict.json','w') as f:
-        json.dump(dict,f)
+            dict[pkName][i['level']] = [minCp,maxCp,i['multiplier'],i['level'],pkName]
+
+
+    if mode == "o" or mode == "optimized" or mode == "":
+        with open('dictO.json','w') as f:
+            json.dump(dict,f)
+    elif mode == "f" or mode == "full":
+        with open('dictF.json','w') as f:
+            json.dump(dict,f)
 
 def getPokemon(cp):
     data = None
-    with open('dict.json',"r") as f:
-        data = json.loads(f.read())
+    if mode == "o" or mode == "optimized" or mode == "":
+        with open('dictO.json',"r") as f:
+            data = json.loads(f.read())
+    elif mode == "f" or mode == "full":
+        with open('dictF.json',"r") as f:
+            data = json.loads(f.read())
+    
 
     res = json.loads(getdata(api+"pokemon_stats.json"))
     availableItems = []
@@ -457,7 +475,7 @@ def getPokemon(cp):
     for mItem in availableItems:
         mon = None
         for stats_ in res:
-            if stats_['pokemon_name'] == mItem[4] and stats_['form'] == "Normal":
+            if stats_['pokemon_name'] == mItem[4].split("`")[0]:
                 mon = stats_
 
         for x in range(16):
