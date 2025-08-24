@@ -454,7 +454,9 @@ def createDictionary():
             json.dump(dict,f)
 
 def getPokemon(cp):
-    data = None
+    data = None # the list of pokemon with each level
+
+    # pick dictionary
     if mode == "o" or mode == "optimized" or mode == "":
         with open('dictO.json',"r") as f:
             data = json.loads(f.read())
@@ -463,36 +465,40 @@ def getPokemon(cp):
             data = json.loads(f.read())
     
 
-    res = json.loads(getdata(api+"pokemon_stats.json"))
+    res = json.loads(getdata(api+"pokemon_stats.json")) # load the API
     availableItems = []
     matches = []
 
+    # add pokemon that fit the CP range
     for dItem in data.values():
-        for mon in dItem.values():
-            if cp >= mon[0] and cp <= mon[1]:
+        for mon in dItem.values(): # pokemon at level X
+            if cp >= mon[0] and cp <= mon[1]: # mon[0] is CP at IV 0/0/0 and mon[1] is CP at IV 15/15/15
                 availableItems.append(mon)
 
+    # availableItems now has a list of pokemon at levels that fit the specified CP range
     for mItem in availableItems:
         mon = None
         for stats_ in res:
             if stats_['pokemon_name'] == mItem[4].split("`")[0]:
                 mon = stats_
 
+        # calculate CP for all IVs and check if it matches
         for x in range(16):
             for y in range(16):
                 for z in range(16):
                     atk = mon['base_attack']
                     def_ = mon['base_defense']
                     sta = mon['base_stamina']
-                    currentCP = math.floor(((atk+x)*((def_+y)**0.5)*((sta+z)**0.5)*((mItem[2])**2))/10)
+                    currentCP = math.floor(((atk+x)*((def_+y)**0.5)*((sta+z)**0.5)*((mItem[2])**2))/10) # cp formula
                     if currentCP < 10: currentCP = 10
 
                     if currentCP == cp:
                         matches.append([mItem[4],mItem[3],x,y,z,currentCP]) #name, level, atk, def, sta, cp
 
     matchesLength = len(matches)
-    print(matchesLength)
+    print(matchesLength) # print number of CP matches
 
+    # Export
     if outputFile == 'all' or outputFile == 'json':
         with open('output.json','w') as f_:
             json.dump(matches,f_)
